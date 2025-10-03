@@ -132,3 +132,78 @@
   </script>
 </body>
 </html>
+
+    function parseCSV(text) {
+      const rows = text.split("\n").slice(1); // skip header
+      dataTable.innerHTML = "";
+      paceData = []; hrData = []; labels = [];
+
+      rows.forEach(row => {
+        const cols = row.split(",");
+        if (cols.length > 7) {
+          const date = cols[0];
+          const distance = (parseFloat(cols[2]) / 1000).toFixed(2); // meter → km
+          const duration = (parseFloat(cols[1]) / 60).toFixed(1);   // sec → min
+          const avgHR = cols[7];
+          const pace = (duration / distance).toFixed(2);
+
+          if (!isNaN(distance) && distance > 0) {
+            const newRow = dataTable.insertRow();
+            newRow.innerHTML = `<td>${date}</td><td>${distance}</td><td>${duration}</td><td>${avgHR}</td><td>${pace}</td>`;
+
+            labels.push(date);
+            paceData.push(pace);
+            hrData.push(avgHR);
+          }
+        }
+      });
+
+      drawCharts();
+    }
+
+    function drawCharts() {
+      new Chart(document.getElementById('paceChart'), {
+        type: 'line',
+        data: {
+          labels: labels,
+          datasets: [{
+            label: 'Pace (min/km)',
+            data: paceData,
+            borderColor: 'blue',
+            backgroundColor: 'rgba(0,0,255,0.1)',
+            fill: true
+          }]
+        }
+      });
+
+      new Chart(document.getElementById('hrChart'), {
+        type: 'line',
+        data: {
+          labels: labels,
+          datasets: [{
+            label: 'HR Rata-rata',
+            data: hrData,
+            borderColor: 'red',
+            backgroundColor: 'rgba(255,0,0,0.1)',
+            fill: true
+          }]
+        }
+      });
+    }
+
+    function clearData() {
+      dataTable.innerHTML = "";
+      paceData = []; hrData = []; labels = [];
+      document.getElementById('paceChart').getContext('2d').clearRect(0,0,500,500);
+      document.getElementById('hrChart').getContext('2d').clearRect(0,0,500,500);
+    }
+
+    // Register service worker
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.register("service-worker.js")
+        .then(() => console.log("Service Worker registered"));
+    }
+  </script>
+</body>
+</html>
+
