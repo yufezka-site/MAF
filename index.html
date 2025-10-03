@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <title>MAF Training Tracker</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#1976d2">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; background: #f9f9f9; }
+    h1 { text-align: center; }
+    input, button { margin: 10px 0; padding: 8px; }
+    table { border-collapse: collapse; width: 100%; margin-top: 20px; background: white; }
+    th, td { border: 1px solid #ccc; padding: 8px; text-align: center; }
+    canvas { margin-top: 20px; background: white; border-radius: 8px; padding: 10px; }
+    .btn { background: #1976d2; color: white; border: none; border-radius: 5px; cursor: pointer; }
+    .btn:hover { background: #125a9c; }
+  </style>
+</head>
+<body>
+  <h1>📊 MAF Training Tracker</h1>
+  
+  <input type="file" id="fileInput" accept=".csv">
+  <button class="btn" onclick="clearData()">Clear Data</button>
+  
+  <table id="dataTable">
+    <thead>
+      <tr>
+        <th>Tanggal</th>
+        <th>Jarak (km)</th>
+        <th>Durasi (menit)</th>
+        <th>HR Rata-rata</th>
+        <th>Pace (menit/km)</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+  
+  <canvas id="paceChart"></canvas>
+  <canvas id="hrChart"></canvas>
+  
+  <script>
+    const fileInput = document.getElementById('fileInput');
+    const dataTable = document.getElementById('dataTable').getElementsByTagName('tbody')[0];
+    let paceData = [];
+    let hrData = [];
+    let labels = [];
+
+    fileInput.addEventListener('change', handleFile);
+
+    function handleFile(event) {
+      const file = event.target.files[0];
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const text = e.target.result;
+        parseCSV(text);
+      };
+      reader.readAsText(file);
+    }
+
+    function parseCSV(text) {
+      const rows = text.split("\n").slice(1); // skip header
+      dataTable.innerHTML = "";
+      paceData = []; hrData = []; labels = [];
+
+      rows.forEach(row => {
+        const cols = row.split(",");
+        if (cols.length > 7) {
+          const date = cols[0];
+          const distance = (parseFloat(cols[2]) / 1000).toFixed(2); // meter → km
+          const duration = (parseFloat(cols[1]) / 60).toFixed(1);   // sec → min
+          const avgHR = cols[7];
+          const pace = (duration / distance).toFixed(2);
+
+          if (!isNaN(distance) && distance > 0) {
+            const newRow = dataTable.insertRow();
+            newRow.innerHTML = `<td>${date}</td><td>${distance}</td><td>${duration}</td><td>${avgHR}</td><td>${pace}</td>`;
+
+            labels.push(date);
+            paceData.push(pace);
+            hrData.push(avgHR);
+          }
+        }
+      });
+
+      drawCharts();
+    }
+
+    function drawCharts() {
+      new Chart(document.getElementById('paceChart'), {
+        type: 'line',
+        data: {
+          labels: labels,
+          datasets: [{
+            label: 'Pace (min/km)',
+            data: paceData,
+            borderColor: 'blue',
+            backgroundColor: 'rgba(0,0,255,0.1)',
+            fill: true
+          }]
+        }
+      });
+
+      new Chart(document.getElementById('hrChart'), {
+        type: 'line',
+        data: {
+          labels: labels,
+          datasets: [{
+            label: 'HR Rata-rata',
+            data: hrData,
+            borderColor: 'red',
+            backgroundColor: 'rgba(255,0,0,0.1)',
+            fill: true
+          }]
+        }
+      });
+    }
+
+    function clearData() {
+      dataTable.innerHTML = "";
+      paceData = []; hrData = []; labels = [];
+      document.getElementById('paceChart').getContext('2d').clearRect(0,0,500,500);
+      document.getElementById('hrChart').getContext('2d').clearRect(0,0,500,500);
+    }
+
+    // Register service worker
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.register("service-worker.js")
+        .then(() => console.log("Service Worker registered"));
+    }
+  </script>
+</body>
+</html>
